@@ -1,0 +1,25 @@
+{
+  "name": "eqx",
+  "private": true,
+  "version": "1.0.0",
+  "description": "EQX — estudio web para personalizar canciones en tiempo real",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c yellow,magenta \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:web": "npm --workspace client run dev",
+    "dev:server": "npm --workspace server run dev",
+    "build": "npm --workspace client run build",
+    "typecheck": "npm --workspace client run typecheck",
+    "start": "npm --workspace server run start",
+    "demo:audio": "npm --workspace server run demo:audio"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=22.9"
+  }
+}
