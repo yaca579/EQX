@@ -413,12 +413,12 @@ body::after {
     border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(255, 255, 255, 0.025);
-    padding: 0.22rem 0.5rem;
-    font-size: 9.5px;
+    padding: 0.26rem 0.55rem;
+    font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #6f6f6f;
+    color: #9c9c9c;
     transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
   }
 

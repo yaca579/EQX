@@ -402,10 +402,10 @@ function draw(
     ctx.fillText(label, boxX + boxWidth / 2, boxY + boxHeight / 2 + 0.5)
   }
 
-  // Etiqueta de eje
+  // Etiqueta de eje (debajo del eje, para no pisar los valores en dB)
   ctx.font = '500 8.5px "JetBrains Mono Variable", ui-monospace, monospace'
-  ctx.fillStyle = 'rgba(255,255,255,0.22)'
+  ctx.fillStyle = 'rgba(255,255,255,0.28)'
   ctx.textAlign = 'left'
-  ctx.textBaseline = 'bottom'
-  ctx.fillText('dB', 6, y0 + 2)
+  ctx.textBaseline = 'top'
+  ctx.fillText('dB', 4, y0 + plotHeight + 7)
 }
