@@ -122,11 +122,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (usingFirebase && firebaseAuth) {
+      let settled = false
       const unsubscribe = onAuthStateChanged(firebaseAuth, (firebaseUser) => {
+        settled = true
         setUser(firebaseUser ? toAppUser(firebaseUser) : null)
         setLoading(false)
       })
-      return unsubscribe
+      // Red de seguridad: si Firebase no responde (red bloqueada, iframe, etc.)
+      // el splash nunca debe quedarse colgado.
+      const failSafe = window.setTimeout(() => {
+        if (!settled) setLoading(false)
+      }, 5000)
+      return () => {
+        window.clearTimeout(failSafe)
+        unsubscribe()
+      }
     }
     setUser(readLocalSession())
     const timer = window.setTimeout(() => setLoading(false), 180)

@@ -11,6 +11,8 @@ interface KnobProps {
   unit?: string
   size?: number
   bipolar?: boolean
+  /** 'dark' para paneles oscuros, 'panel' para el panel crema del amplificador. */
+  variant?: 'dark' | 'panel'
   onChange: (value: number) => void
   formatValue?: (value: number) => string
 }
@@ -41,11 +43,13 @@ export function Knob({
   unit = 'dB',
   size = 62,
   bipolar = true,
+  variant = 'dark',
   onChange,
   formatValue,
 }: KnobProps) {
   const gradientId = useId().replace(/:/g, '')
   const drag = useRef<{ y: number; value: number } | null>(null)
+  const isPanel = variant === 'panel'
 
   const range = max - min
   const normalized = clamp((value - min) / range, 0, 1)
@@ -85,8 +89,12 @@ export function Knob({
     drag.current = null
   }
 
+  const arcStops = isPanel
+    ? ['#8A5A16', '#D89A2C', '#FFD79A']
+    : ['#C24E00', '#FF6A00', '#FFB067']
+
   return (
-    <div className="flex select-none flex-col items-center gap-1.5">
+    <div className="group flex select-none flex-col items-center gap-1.5">
       <div
         role="slider"
         tabIndex={0}
@@ -111,16 +119,16 @@ export function Knob({
           }
           if (event.key === 'Home') commit(defaultValue)
         }}
-        className="group relative cursor-ns-resize touch-none rounded-full outline-none transition-transform active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-brand/60"
+        className="relative cursor-ns-resize touch-none rounded-full outline-none transition-transform active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-brand/60"
         style={{ width: size, height: size }}
         title={`${label} · doble clic para resetear`}
       >
         <svg viewBox="0 0 80 80" width={size} height={size} className="drop-shadow-[0_6px_14px_rgba(0,0,0,0.45)]">
           <defs>
             <linearGradient id={`knob-${gradientId}`} x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#C24E00" />
-              <stop offset="55%" stopColor="#FF6A00" />
-              <stop offset="100%" stopColor="#FFB067" />
+              <stop offset="0%" stopColor={arcStops[0]} />
+              <stop offset="55%" stopColor={arcStops[1]} />
+              <stop offset="100%" stopColor={arcStops[2]} />
             </linearGradient>
             <radialGradient id={`face-${gradientId}`} cx="35%" cy="28%" r="80%">
               <stop offset="0%" stopColor="#2A2A2A" />
@@ -129,14 +137,20 @@ export function Knob({
             </radialGradient>
           </defs>
 
-          <path d={arc(cx, cy, radius, START_ANGLE, END_ANGLE)} fill="none" stroke="#2C2C2C" strokeWidth="4" strokeLinecap="round" />
+          <path
+            d={arc(cx, cy, radius, START_ANGLE, END_ANGLE)}
+            fill="none"
+            stroke={isPanel ? 'rgba(43,32,16,0.28)' : '#2C2C2C'}
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
           <path
             d={arc(cx, cy, radius, angle >= zeroAngle ? zeroAngle : angle, angle >= zeroAngle ? angle : zeroAngle)}
             fill="none"
             stroke={`url(#knob-${gradientId})`}
             strokeWidth="4"
             strokeLinecap="round"
-            style={{ filter: 'drop-shadow(0 0 6px rgba(255,106,0,0.45))' }}
+            style={{ filter: 'drop-shadow(0 0 6px rgba(255,106,0,0.35))' }}
           />
           <circle cx={cx} cy={cy} r="23" fill={`url(#face-${gradientId})`} stroke="rgba(255,255,255,0.09)" strokeWidth="1" />
           <circle cx={cx} cy={cy} r="23" fill="none" stroke="rgba(0,0,0,0.6)" strokeWidth="6" opacity="0.25" />
@@ -149,21 +163,25 @@ export function Knob({
                 y1={tickStart.y}
                 x2={tickEnd.x}
                 y2={tickEnd.y}
-                stroke="#FF8A3D"
+                stroke={isPanel ? '#FFE7BF' : '#FF8A3D'}
                 strokeWidth="2.6"
                 strokeLinecap="round"
               />
             )
           })()}
-          <circle cx={cx} cy={cy} r="2" fill="#FFB067" opacity="0.8" />
+          <circle cx={cx} cy={cy} r="2" fill={isPanel ? '#FFE7BF' : '#FFB067'} opacity="0.8" />
         </svg>
       </div>
       <div className="text-center leading-tight">
-        <div className="num text-[11px] font-medium text-neutral-200">
+        <div className={`num text-[11px] font-medium ${isPanel ? 'text-[#2d2317]' : 'text-neutral-200'}`}>
           {display}
-          <span className="ml-0.5 text-[9px] text-neutral-500">{unit}</span>
+          <span className={`ml-0.5 text-[9px] ${isPanel ? 'text-[#6b5940]' : 'text-neutral-500'}`}>{unit}</span>
         </div>
-        <div className="mt-0.5 text-[9.5px] font-semibold uppercase tracking-[0.13em] text-neutral-500 transition-colors group-hover:text-neutral-400">
+        <div
+          className={`mt-0.5 text-[9px] font-semibold uppercase tracking-[0.13em] transition-colors ${
+            isPanel ? 'text-[#6b5940] group-hover:text-[#3a2c1b]' : 'text-neutral-500 group-hover:text-neutral-400'
+          }`}
+        >
           {label}
         </div>
       </div>

@@ -348,6 +348,100 @@ body::after {
   }
 }
 
+@layer components {
+  /* Consola de amplificador del estudio */
+  .console-shell {
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    background: linear-gradient(180deg, #242424 0%, #141414 42%, #0b0b0b 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.07),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.85),
+      0 34px 70px -48px rgba(0, 0, 0, 0.95);
+  }
+
+  .amp-grille {
+    background-color: #080808;
+    background-image:
+      radial-gradient(120% 100% at 50% -10%, rgba(255, 255, 255, 0.06), transparent 62%),
+      repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, rgba(0, 0, 0, 0.62) 1px 4px),
+      repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, rgba(0, 0, 0, 0.7) 1px 4px);
+    box-shadow:
+      inset 0 0 70px rgba(0, 0, 0, 0.92),
+      inset 0 2px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .amp-faceplate {
+    background: linear-gradient(180deg, #f3e1bc 0%, #e8ce9c 38%, #d9b979 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.75),
+      inset 0 -3px 8px rgba(96, 66, 25, 0.3);
+  }
+
+  .screw {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 35% 30%, #cbb894, #7a6544 60%, #4a3a22);
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+      0 1px 1px rgba(255, 255, 255, 0.35);
+  }
+
+  .screw::after {
+    content: "";
+    position: absolute;
+    inset: 3px 1px;
+    border-top: 1px solid rgba(20, 14, 8, 0.7);
+    transform: rotate(35deg);
+  }
+
+  .panel-metal {
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.065);
+    background: linear-gradient(180deg, rgba(30, 30, 30, 0.9), rgba(12, 12, 12, 0.96));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 22px 44px -34px rgba(0, 0, 0, 0.95);
+  }
+
+  .chain-node {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.025);
+    padding: 0.22rem 0.5rem;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6f6f6f;
+    transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
+  }
+
+  .chain-node-on {
+    color: #ffb27a;
+    border-color: rgba(255, 106, 0, 0.38);
+    background: rgba(255, 106, 0, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(255, 106, 0, 0.06);
+  }
+
+  button.chain-node:hover {
+    color: #fff;
+    border-color: rgba(255, 106, 0, 0.55);
+  }
+
+  .chain-link {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 1px;
+    background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.22) 0 3px, transparent 3px 6px);
+  }
+}
+
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
