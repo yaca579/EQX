@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 interface ModalProps {
   open: boolean
@@ -28,7 +29,9 @@ export function Modal({ open, onClose, title, description, children, footer, wid
 
   if (!open) return null
 
-  return (
+  // En un portal: si el modal vive dentro de un `.panel` (backdrop-filter),
+  // ese ancestro lo contendría y quedaría por debajo del resto de la página.
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end justify-center p-3 sm:items-center sm:p-6">
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -53,6 +56,7 @@ export function Modal({ open, onClose, title, description, children, footer, wid
         <div className="mt-5">{children}</div>
         {footer && <div className="mt-6 flex items-center justify-end gap-2">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
