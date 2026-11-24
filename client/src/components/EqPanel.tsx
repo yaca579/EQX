@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useStudio } from '../context/StudioContext'
 import {
   formatDb,
-  EQ_BAND_LABELS,
+  formatHzCompact,
   EQ_BAND_TYPE_META,
   EQ_FREQUENCIES,
   EQ_SLOPES,
@@ -12,9 +12,10 @@ import {
 import { EqCanvas } from './EqCanvas'
 
 export function EqPanel({ className = '' }: { className?: string }) {
-  const { state, setBand, setBandType, setBandSlope, resetEq } = useStudio()
+  const { state, setBand, setBandType, setBandSlope, setBandFrequency, resetEq } = useStudio()
   const [selected, setSelected] = useState(5)
 
+  const frequency = state.bandFrequencies[selected] ?? EQ_FREQUENCIES[selected] ?? 1000
   const type = state.bandTypes[selected] ?? 'bell'
   const cut = isCutType(type)
   const typeLabel = EQ_BAND_TYPE_META.find((meta) => meta.id === type)?.label ?? 'Campana'
@@ -34,7 +35,7 @@ export function EqPanel({ className = '' }: { className?: string }) {
         </div>
         <div className="flex items-center gap-3">
           <span className="hidden items-center gap-1.5 text-[10px] text-neutral-500 sm:flex">
-            <Sparkles size={11} /> Arrastra los puntos · doble clic para resetear
+            <Sparkles size={11} /> Arrastra: horizontal frecuencia · vertical ganancia
           </span>
           <button
             onClick={resetEq}
@@ -50,8 +51,10 @@ export function EqPanel({ className = '' }: { className?: string }) {
           bands={state.bands}
           types={state.bandTypes}
           slopes={state.bandSlopes}
+          frequencies={state.bandFrequencies}
           selected={selected}
           onChange={setBand}
+          onChangeFrequency={setBandFrequency}
           onSelect={setSelected}
           height={286}
         />
@@ -61,8 +64,20 @@ export function EqPanel({ className = '' }: { className?: string }) {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <div className="flex items-center gap-1.5">
             <span className="label-xs">Banda</span>
-            <span className="num text-[11px] font-semibold text-white">{EQ_BAND_LABELS[selected]} Hz</span>
-            <span className="text-[10px] text-neutral-500">{typeLabel}</span>
+            <input
+              type="number"
+              min={20}
+              max={20000}
+              step={1}
+              value={Math.round(frequency)}
+              onChange={(event) => {
+                const value = Number(event.target.value)
+                if (Number.isFinite(value) && value > 0) setBandFrequency(selected, value)
+              }}
+              aria-label="Frecuencia de la banda en Hz"
+              className="num input h-7 w-[76px] px-1.5 text-[11px]"
+            />
+            <span className="text-[10px] text-neutral-500">Hz · {typeLabel}</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Tipo de filtro">
@@ -119,11 +134,11 @@ export function EqPanel({ className = '' }: { className?: string }) {
       </div>
 
       <div className="grid grid-cols-5 gap-1 px-2 pb-3 pt-1 sm:px-3">
-        {EQ_FREQUENCIES.map((frequency, index) => (
-          <div key={frequency} className="text-center">
+        {state.bandFrequencies.map((bandFrequency, index) => (
+          <div key={index} className="text-center">
             <p className="num text-[10.5px] text-neutral-400">{formatDb(state.bands[index] ?? 0)}</p>
             <p className="label-xs mt-0.5 text-[8.5px] tracking-[0.08em] text-neutral-600">
-              {EQ_BAND_LABELS[index]}
+              {formatHzCompact(bandFrequency)}
             </p>
           </div>
         ))}

@@ -440,7 +440,7 @@ export class AudioEngine {
     this.bandChains.forEach((chain, index) => {
       const type = state.bandTypes?.[index] ?? 'bell'
       const cut = isCutType(type)
-      const frequency = EQ_FREQUENCIES[index] ?? 1000
+      const frequency = clamp(state.bandFrequencies?.[index] ?? EQ_FREQUENCIES[index] ?? 1000, 20, 20000)
       // Un corte no usa ganancia: la forma la definen frecuencia y pendiente.
       const gain = cut ? 0 : clamp(state.bands[index] ?? 0, -24, 24)
       const slope = state.bandSlopes?.[index] ?? 24

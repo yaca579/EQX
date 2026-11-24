@@ -16,6 +16,7 @@ import {
   countActiveEffects,
   defaultStudioState,
   effectiveTempo,
+  EQ_FREQUENCIES,
   isCutType,
   isStudioStateEqual,
   round,
@@ -36,6 +37,7 @@ interface StudioContextValue {
   setBand: (index: number, gain: number) => void
   setBandType: (index: number, type: EqBandType) => void
   setBandSlope: (index: number, slope: EqSlope) => void
+  setBandFrequency: (index: number, hz: number) => void
   resetEq: () => void
   setTone: (band: ToneBand, gain: number) => void
   setGain: (gain: number) => void
@@ -101,11 +103,23 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     [mutate],
   )
 
+  const setBandFrequency = useCallback(
+    (index: number, hz: number) => {
+      mutate((previous) => {
+        const bandFrequencies = [...previous.bandFrequencies]
+        bandFrequencies[index] = round(clamp(hz, 20, 20000), 0)
+        return { ...previous, bandFrequencies }
+      })
+    },
+    [mutate],
+  )
+
   const resetEq = useCallback(() => {
     mutate((previous) => ({
       ...previous,
       bands: previous.bands.map(() => 0),
       bandTypes: previous.bandTypes.map(() => 'bell' as EqBandType),
+      bandFrequencies: EQ_FREQUENCIES.map((frequency) => frequency),
     }))
   }, [mutate])
 
@@ -195,6 +209,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       setBand,
       setBandType,
       setBandSlope,
+      setBandFrequency,
       resetEq,
       setTone,
       setGain,
@@ -216,6 +231,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       setBand,
       setBandType,
       setBandSlope,
+      setBandFrequency,
       resetEq,
       setTone,
       setGain,

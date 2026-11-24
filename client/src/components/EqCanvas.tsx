@@ -8,6 +8,7 @@ import {
   EQ_MAX_DB,
   EQ_MIN_DB,
   formatDb,
+  formatHz,
   isCutType,
   type EqBandType,
   type EqSlope,
@@ -17,8 +18,10 @@ interface EqCanvasProps {
   bands: number[]
   types: EqBandType[]
   slopes: EqSlope[]
+  frequencies: number[]
   selected?: number | null
   onChange: (index: number, gain: number) => void
+  onChangeFrequency: (index: number, hz: number) => void
   onSelect?: (index: number) => void
   height?: number
 }
@@ -27,12 +30,21 @@ const F_MIN = 20
 const F_MAX = 20000
 const PAD = { top: 14, right: 16, bottom: 24, left: 36 }
 
+/** Redondeo legible de la frecuencia al arrastrar en horizontal. */
+function snapFrequency(hz: number): number {
+  if (hz < 1000) return Math.round(hz)
+  if (hz < 10000) return Math.round(hz / 10) * 10
+  return Math.round(hz / 50) * 50
+}
+
 export function EqCanvas({
   bands,
   types,
   slopes,
+  frequencies,
   selected = null,
   onChange,
+  onChangeFrequency,
   onSelect,
   height = 300,
 }: EqCanvasProps) {
@@ -41,6 +53,7 @@ export function EqCanvas({
   const bandsRef = useRef(bands)
   const typesRef = useRef(types)
   const slopesRef = useRef(slopes)
+  const frequenciesRef = useRef(frequencies)
   const selectedRef = useRef<number | null>(selected)
   const dragRef = useRef<number | null>(null)
   const hoverRef = useRef<number | null>(null)
@@ -52,6 +65,7 @@ export function EqCanvas({
   bandsRef.current = bands
   typesRef.current = types
   slopesRef.current = slopes
+  frequenciesRef.current = frequencies
   selectedRef.current = selected
 
   useEffect(() => {
@@ -97,6 +111,7 @@ export function EqCanvas({
         hover: hoverRef.current,
         types: typesRef.current,
         slopes: slopesRef.current,
+        frequencies: frequenciesRef.current,
         selected: selectedRef.current,
         curve: curveRef.current,
         magnitude: magnitudeRef.current,
@@ -135,7 +150,7 @@ export function EqCanvas({
     const width = sizeRef.current.width
     let best = -1
     let bestDistance = Infinity
-    EQ_FREQUENCIES.forEach((frequency, index) => {
+    frequenciesRef.current.forEach((frequency, index) => {
       const distance = Math.abs(freqToPlotX(frequency, width) - x)
       if (distance < bestDistance) {
         bestDistance = distance
@@ -145,39 +160,59 @@ export function EqCanvas({
     return bestDistance <= 34 ? best : -1
   }
 
+  // Punto de partida del arrastre: así el punto no salta al pulsarlo y el
+  // movimiento se aplica como desplazamiento (frecuencia y ganancia).
+  const originRef = useRef<{ x: number; y: number; gain: number; frequency: number } | null>(null)
+
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     try {
       event.currentTarget.setPointerCapture(event.pointerId)
     } catch {
       /* punteros sintéticos o ya liberados */
     }
-    const { x, y, gain } = pointToValue(event.clientX, event.clientY)
+    const { x, y } = pointToValue(event.clientX, event.clientY)
     const band = findBand(x)
     if (band === -1) return
     onSelect?.(band)
     dragRef.current = band
     hoverRef.current = band
-    // Un corte no tiene ganancia: al pulsarlo sólo se selecciona.
-    if (!isCutType(typesRef.current[band] ?? 'bell')) onChange(band, gain)
-    void y
+    originRef.current = {
+      x,
+      y,
+      gain: bandsRef.current[band] ?? 0,
+      frequency: frequenciesRef.current[band] ?? EQ_FREQUENCIES[band] ?? 1000,
+    }
   }
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    const { x, y, gain } = pointToValue(event.clientX, event.clientY)
-    if (dragRef.current !== null) {
-      if (!isCutType(typesRef.current[dragRef.current] ?? 'bell')) {
-        onChange(dragRef.current, Number(gain.toFixed(1)))
-      }
+    const { x, y } = pointToValue(event.clientX, event.clientY)
+    const dragIndex = dragRef.current
+    const origin = originRef.current
+
+    if (dragIndex === null || !origin) {
+      const band = findBand(x)
+      hoverRef.current = band === -1 ? null : band
+      const canvas = canvasRef.current
+      if (canvas) canvas.style.cursor = band === -1 ? 'crosshair' : 'grab'
       return
     }
-    const band = findBand(x)
-    hoverRef.current = band === -1 ? null : band
-    const canvas = canvasRef.current
-    if (canvas) {
-      canvas.style.cursor =
-        band === -1 ? 'crosshair' : isCutType(typesRef.current[band] ?? 'bell') ? 'pointer' : 'ns-resize'
+
+    const plotWidth = Math.max(10, sizeRef.current.width - PAD.left - PAD.right)
+    const plotHeight = Math.max(10, sizeRef.current.height - PAD.top - PAD.bottom)
+    const dx = x - origin.x
+    const dy = y - origin.y
+
+    // Horizontal: frecuencia en escala logarítmica, de 20 Hz a 20 kHz.
+    if (Math.abs(dx) > 0.5) {
+      const frequency = origin.frequency * Math.pow(F_MAX / F_MIN, dx / plotWidth)
+      onChangeFrequency(dragIndex, snapFrequency(clamp(frequency, F_MIN, F_MAX)))
     }
-    void y
+
+    // Vertical: ganancia (los cortes no tienen).
+    if (!isCutType(typesRef.current[dragIndex] ?? 'bell') && Math.abs(dy) > 0.5) {
+      const gain = origin.gain - (dy / plotHeight) * (EQ_MAX_DB - EQ_MIN_DB)
+      onChange(dragIndex, Number(clamp(gain, EQ_MIN_DB, EQ_MAX_DB).toFixed(1)))
+    }
   }
 
   const endInteraction = (event: React.PointerEvent<HTMLCanvasElement>) => {
@@ -185,6 +220,7 @@ export function EqCanvas({
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
     dragRef.current = null
+    originRef.current = null
   }
 
   return (
@@ -206,7 +242,7 @@ export function EqCanvas({
         className="block w-full touch-none rounded-xl"
         style={{ height }}
         role="img"
-        aria-label="Ecualizador gráfico editable. Arrastra los puntos para ajustar cada banda."
+        aria-label="Ecualizador gráfico editable. Arrastra los puntos en horizontal para la frecuencia y en vertical para la ganancia."
       />
     </div>
   )
@@ -217,6 +253,7 @@ interface DrawOptions {
   hover: number | null
   types: EqBandType[]
   slopes: EqSlope[]
+  frequencies: number[]
   selected: number | null
   curve: Float32Array | null
   magnitude: Float32Array | null
@@ -364,7 +401,7 @@ function draw(
   }
 
   // Puntos editables
-  EQ_FREQUENCIES.forEach((frequency, index) => {
+  options.frequencies.forEach((frequency, index) => {
     const x = freqToX(frequency)
     const type = options.types[index] ?? 'bell'
     const cut = isCutType(type)
@@ -427,7 +464,7 @@ function draw(
   // Etiqueta flotante
   const focus = options.drag ?? options.hover
   if (focus !== null) {
-    const frequency = EQ_FREQUENCIES[focus]
+    const frequency = options.frequencies[focus] ?? EQ_FREQUENCIES[focus]
     const type = options.types[focus] ?? 'bell'
     const cut = isCutType(type)
     const gain = bands[focus] ?? 0
@@ -435,8 +472,8 @@ function draw(
     const y = cut ? dbToY(0) : dbToY(clamp(gain, EQ_MIN_DB, EQ_MAX_DB))
     const typeLabel = EQ_BAND_TYPE_META.find((meta) => meta.id === type)?.short ?? ''
     const label = cut
-      ? `${EQ_BAND_LABELS[focus]} Hz · ${typeLabel} ${options.slopes[focus] ?? 24} dB/oct`
-      : `${EQ_BAND_LABELS[focus]} Hz · ${formatDb(gain)} dB`
+      ? `${formatHz(frequency)} · ${typeLabel} ${options.slopes[focus] ?? 24} dB/oct`
+      : `${formatHz(frequency)} · ${formatDb(gain)} dB`
     ctx.font = '500 10.5px "JetBrains Mono Variable", ui-monospace, monospace'
     const textWidth = ctx.measureText(label).width
     const boxWidth = textWidth + 18

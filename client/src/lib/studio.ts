@@ -63,6 +63,8 @@ export interface StudioState {
   bandTypes: EqBandType[]
   /** Pendiente de cada corte en dB/octava */
   bandSlopes: EqSlope[]
+  /** Frecuencia central de cada banda, en Hz */
+  bandFrequencies: number[]
   /** dB de los estantes de tono */
   bass: number
   mid: number
@@ -197,6 +199,7 @@ export function defaultStudioState(): StudioState {
     bands: EQ_FREQUENCIES.map(() => 0),
     bandTypes: EQ_FREQUENCIES.map(() => 'bell' as EqBandType),
     bandSlopes: EQ_FREQUENCIES.map(() => 24 as EqSlope),
+    bandFrequencies: EQ_FREQUENCIES.map((frequency) => frequency),
     bass: 0,
     mid: 0,
     treble: 0,
@@ -231,6 +234,9 @@ export function cloneState(state: StudioState): StudioState {
     bands: state.bands.map((value) => round(clamp(value, EQ_MIN_DB, EQ_MAX_DB), 1)),
     bandTypes: EQ_FREQUENCIES.map((_, index) => sanitizeBandType(state.bandTypes?.[index])),
     bandSlopes: EQ_FREQUENCIES.map((_, index) => sanitizeBandSlope(state.bandSlopes?.[index])),
+    bandFrequencies: EQ_FREQUENCIES.map((frequency, index) =>
+      round(clamp(state.bandFrequencies?.[index] ?? frequency, 20, 20000), 0),
+    ),
     bass: round(clamp(state.bass, -12, 12), 1),
     mid: round(clamp(state.mid, -12, 12), 1),
     treble: round(clamp(state.treble, -12, 12), 1),
@@ -271,11 +277,16 @@ export function sanitizeState(input: unknown): StudioState {
 
   const bandTypes = EQ_FREQUENCIES.map((_, index) => sanitizeBandType(raw.bandTypes?.[index]))
   const bandSlopes = EQ_FREQUENCIES.map((_, index) => sanitizeBandSlope(raw.bandSlopes?.[index]))
+  const bandFrequencies = EQ_FREQUENCIES.map((fallback, index) => {
+    const value = raw.bandFrequencies?.[index]
+    return typeof value === 'number' ? round(clamp(value, 20, 20000), 0) : fallback
+  })
 
   return {
     bands,
     bandTypes,
     bandSlopes,
+    bandFrequencies,
     bass: num(raw.bass, 0, -12, 12),
     mid: num(raw.mid, 0, -12, 12),
     treble: num(raw.treble, 0, -12, 12),
@@ -320,6 +331,15 @@ export function formatDb(value: number): string {
 export function formatHz(value: number): string {
   if (value >= 1000) return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)} kHz`
   return `${Math.round(value)} Hz`
+}
+
+/** Etiqueta corta para la fila de bandas (31, 250, 1.2K…). */
+export function formatHzCompact(value: number): string {
+  if (value >= 1000) {
+    const k = value / 1000
+    return `${k >= 10 ? Math.round(k) : Math.round(k * 10) / 10}K`
+  }
+  return `${Math.round(value)}`
 }
 
 export function formatBalance(value: number): string {
