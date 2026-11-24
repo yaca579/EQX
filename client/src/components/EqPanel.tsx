@@ -2,7 +2,6 @@ import { RotateCcw, Sliders, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { useStudio } from '../context/StudioContext'
 import {
-  formatBalance,
   formatDb,
   EQ_BAND_LABELS,
   EQ_BAND_TYPE_META,
@@ -11,10 +10,9 @@ import {
   isCutType,
 } from '../lib/studio'
 import { EqCanvas } from './EqCanvas'
-import { Knob } from './Knob'
 
 export function EqPanel({ className = '' }: { className?: string }) {
-  const { state, setTone, setBand, setGain, setBalance, setBandType, setBandSlope, resetEq } = useStudio()
+  const { state, setBand, setBandType, setBandSlope, resetEq } = useStudio()
   const [selected, setSelected] = useState(5)
 
   const type = state.bandTypes[selected] ?? 'bell'
@@ -131,32 +129,6 @@ export function EqPanel({ className = '' }: { className?: string }) {
         ))}
       </div>
 
-      <div className="hairline mx-4" />
-
-      <div className="px-3 py-4 sm:px-5">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="label-xs">Tono y salida</p>
-          <p className="text-[10px] text-neutral-600">Estantes suaves · ganancia de salida</p>
-        </div>
-        <div className="grid grid-cols-5 gap-1 sm:gap-3">
-          <Knob label="Bass" value={state.bass} onChange={(value) => setTone('bass', value)} />
-          <Knob label="Mid" value={state.mid} onChange={(value) => setTone('mid', value)} />
-          <Knob label="Treble" value={state.treble} onChange={(value) => setTone('treble', value)} />
-          <Knob label="Gain" value={state.gain} onChange={setGain} />
-          <Knob
-            label="Balance"
-            value={state.balance}
-            min={-1}
-            max={1}
-            step={0.05}
-            defaultValue={0}
-            unit=""
-            bipolar
-            onChange={setBalance}
-            formatValue={formatBalance}
-          />
-        </div>
-      </div>
     </section>
   )
 }
