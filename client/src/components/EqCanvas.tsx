@@ -3,15 +3,23 @@ import { getEngine } from '../audio/engine'
 import {
   clamp,
   EQ_BAND_LABELS,
+  EQ_BAND_TYPE_META,
   EQ_FREQUENCIES,
   EQ_MAX_DB,
   EQ_MIN_DB,
   formatDb,
+  isCutType,
+  type EqBandType,
+  type EqSlope,
 } from '../lib/studio'
 
 interface EqCanvasProps {
   bands: number[]
+  types: EqBandType[]
+  slopes: EqSlope[]
+  selected?: number | null
   onChange: (index: number, gain: number) => void
+  onSelect?: (index: number) => void
   height?: number
 }
 
@@ -19,10 +27,21 @@ const F_MIN = 20
 const F_MAX = 20000
 const PAD = { top: 14, right: 16, bottom: 24, left: 36 }
 
-export function EqCanvas({ bands, onChange, height = 300 }: EqCanvasProps) {
+export function EqCanvas({
+  bands,
+  types,
+  slopes,
+  selected = null,
+  onChange,
+  onSelect,
+  height = 300,
+}: EqCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const bandsRef = useRef(bands)
+  const typesRef = useRef(types)
+  const slopesRef = useRef(slopes)
+  const selectedRef = useRef<number | null>(selected)
   const dragRef = useRef<number | null>(null)
   const hoverRef = useRef<number | null>(null)
   const sizeRef = useRef({ width: 0, height: 0 })
@@ -31,6 +50,9 @@ export function EqCanvas({ bands, onChange, height = 300 }: EqCanvasProps) {
   const freqsRef = useRef<Float32Array | null>(null)
 
   bandsRef.current = bands
+  typesRef.current = types
+  slopesRef.current = slopes
+  selectedRef.current = selected
 
   useEffect(() => {
     const container = containerRef.current
@@ -73,6 +95,9 @@ export function EqCanvas({ bands, onChange, height = 300 }: EqCanvasProps) {
       draw(ctx, canvas, bandsRef.current, {
         drag: dragRef.current,
         hover: hoverRef.current,
+        types: typesRef.current,
+        slopes: slopesRef.current,
+        selected: selectedRef.current,
         curve: curveRef.current,
         magnitude: magnitudeRef.current,
         freqs: freqsRef.current,
@@ -129,23 +154,28 @@ export function EqCanvas({ bands, onChange, height = 300 }: EqCanvasProps) {
     const { x, y, gain } = pointToValue(event.clientX, event.clientY)
     const band = findBand(x)
     if (band === -1) return
+    onSelect?.(band)
     dragRef.current = band
     hoverRef.current = band
-    onChange(band, gain)
+    // Un corte no tiene ganancia: al pulsarlo sólo se selecciona.
+    if (!isCutType(typesRef.current[band] ?? 'bell')) onChange(band, gain)
     void y
   }
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const { x, y, gain } = pointToValue(event.clientX, event.clientY)
     if (dragRef.current !== null) {
-      onChange(dragRef.current, Number(gain.toFixed(1)))
+      if (!isCutType(typesRef.current[dragRef.current] ?? 'bell')) {
+        onChange(dragRef.current, Number(gain.toFixed(1)))
+      }
       return
     }
     const band = findBand(x)
     hoverRef.current = band === -1 ? null : band
     const canvas = canvasRef.current
     if (canvas) {
-      canvas.style.cursor = band === -1 ? 'crosshair' : 'ns-resize'
+      canvas.style.cursor =
+        band === -1 ? 'crosshair' : isCutType(typesRef.current[band] ?? 'bell') ? 'pointer' : 'ns-resize'
     }
     void y
   }
@@ -185,6 +215,9 @@ export function EqCanvas({ bands, onChange, height = 300 }: EqCanvasProps) {
 interface DrawOptions {
   drag: number | null
   hover: number | null
+  types: EqBandType[]
+  slopes: EqSlope[]
+  selected: number | null
   curve: Float32Array | null
   magnitude: Float32Array | null
   freqs: Float32Array | null
@@ -333,12 +366,16 @@ function draw(
   // Puntos editables
   EQ_FREQUENCIES.forEach((frequency, index) => {
     const x = freqToX(frequency)
-    const y = dbToY(clamp(bands[index] ?? 0, EQ_MIN_DB, EQ_MAX_DB))
+    const type = options.types[index] ?? 'bell'
+    const cut = isCutType(type)
+    // Un corte se dibuja sobre la línea de 0 dB: no tiene ganancia propia.
+    const y = cut ? dbToY(0) : dbToY(clamp(bands[index] ?? 0, EQ_MIN_DB, EQ_MAX_DB))
     const active = options.drag === index
     const hovered = options.hover === index
+    const chosen = options.selected === index
     const radius = active ? 7 : hovered ? 6 : 4.6
 
-    if (active || hovered) {
+    if (active || hovered || chosen) {
       ctx.beginPath()
       ctx.arc(x, y, radius + 7, 0, Math.PI * 2)
       ctx.fillStyle = 'rgba(255,106,0,0.12)'
@@ -346,12 +383,29 @@ function draw(
 
       ctx.beginPath()
       ctx.setLineDash([3, 3])
-      ctx.strokeStyle = 'rgba(255,106,0,0.32)'
+      ctx.strokeStyle = chosen ? 'rgba(255,106,0,0.5)' : 'rgba(255,106,0,0.32)'
       ctx.lineWidth = 1
       ctx.moveTo(x, y0)
       ctx.lineTo(x, y0 + plotHeight)
       ctx.stroke()
       ctx.setLineDash([])
+    }
+
+    if (cut) {
+      // Rombo: distingue un corte (izquierda o derecha) de una campana.
+      const size = radius + 1.4
+      ctx.beginPath()
+      ctx.moveTo(x, y - size)
+      ctx.lineTo(x + size, y)
+      ctx.lineTo(x, y + size)
+      ctx.lineTo(x - size, y)
+      ctx.closePath()
+      ctx.fillStyle = active ? '#FF8A3D' : '#121212'
+      ctx.fill()
+      ctx.strokeStyle = '#FF6A00'
+      ctx.lineWidth = 1.8
+      ctx.stroke()
+      return
     }
 
     ctx.beginPath()
@@ -374,10 +428,15 @@ function draw(
   const focus = options.drag ?? options.hover
   if (focus !== null) {
     const frequency = EQ_FREQUENCIES[focus]
+    const type = options.types[focus] ?? 'bell'
+    const cut = isCutType(type)
     const gain = bands[focus] ?? 0
     const x = freqToX(frequency)
-    const y = dbToY(clamp(gain, EQ_MIN_DB, EQ_MAX_DB))
-    const label = `${EQ_BAND_LABELS[focus]} Hz · ${formatDb(gain)} dB`
+    const y = cut ? dbToY(0) : dbToY(clamp(gain, EQ_MIN_DB, EQ_MAX_DB))
+    const typeLabel = EQ_BAND_TYPE_META.find((meta) => meta.id === type)?.short ?? ''
+    const label = cut
+      ? `${EQ_BAND_LABELS[focus]} Hz · ${typeLabel} ${options.slopes[focus] ?? 24} dB/oct`
+      : `${EQ_BAND_LABELS[focus]} Hz · ${formatDb(gain)} dB`
     ctx.font = '500 10.5px "JetBrains Mono Variable", ui-monospace, monospace'
     const textWidth = ctx.measureText(label).width
     const boxWidth = textWidth + 18

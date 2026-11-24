@@ -2,6 +2,7 @@ import {
   clamp,
   effectiveTempo,
   EQ_FREQUENCIES,
+  isCutType,
   type EffectId,
   type StudioState,
 } from '../lib/studio'
@@ -49,6 +50,17 @@ type Slot = {
 
 const SMOOTH = 0.02
 
+/** Etapas en serie por banda: permite cortes de hasta 48 dB/octava. */
+const BAND_STAGES = 4
+const BELL_Q = 1.1
+const SHELF_Q = 0.7071
+/** Q de cada etapa para un Butterworth de orden 2·n. */
+const CUT_STAGE_Q: Record<number, number[]> = {
+  1: [0.7071],
+  2: [0.5412, 1.3065],
+  4: [0.5098, 0.6013, 0.8999, 2.5629],
+}
+
 export class AudioEngine {
   private ctx: AudioContext | null = null
   private el: HTMLAudioElement | null = null
@@ -56,6 +68,7 @@ export class AudioEngine {
 
   private eqInput: GainNode | null = null
   private bandFilters: BiquadFilterNode[] = []
+  private bandChains: BiquadFilterNode[][] = []
   private toneFilters: Record<'bass' | 'mid' | 'treble', BiquadFilterNode> | null = null
   private slots: Partial<Record<EffectId, Slot>> = {}
 
@@ -145,14 +158,21 @@ export class AudioEngine {
 
     this.toneFilters = { bass, mid, treble }
 
-    this.bandFilters = EQ_FREQUENCIES.map((frequency) => {
-      const filter = ctx.createBiquadFilter()
-      filter.type = 'peaking'
-      filter.frequency.value = frequency
-      filter.Q.value = 1.1
-      filter.gain.value = 0
-      return filter
+    // Cuatro etapas por banda: campana y estantes usan la primera y el resto
+    // queda transparente (peaking a 0 dB), así cambiar de forma no rehace el grafo.
+    this.bandChains = EQ_FREQUENCIES.map((frequency) => {
+      const chain: BiquadFilterNode[] = []
+      for (let stage = 0; stage < BAND_STAGES; stage += 1) {
+        const filter = ctx.createBiquadFilter()
+        filter.type = 'peaking'
+        filter.frequency.value = frequency
+        filter.Q.value = BELL_Q
+        filter.gain.value = 0
+        chain.push(filter)
+      }
+      return chain
     })
+    this.bandFilters = this.bandChains.flat()
 
     this.master = ctx.createGain()
     this.master.gain.value = 1
@@ -417,8 +437,40 @@ export class AudioEngine {
     this.toneFilters.mid.gain.setTargetAtTime(state.mid, now, SMOOTH)
     this.toneFilters.treble.gain.setTargetAtTime(state.treble, now, SMOOTH)
 
-    this.bandFilters.forEach((filter, index) => {
-      filter.gain.setTargetAtTime(clamp(state.bands[index] ?? 0, -24, 24), now, SMOOTH)
+    this.bandChains.forEach((chain, index) => {
+      const type = state.bandTypes?.[index] ?? 'bell'
+      const cut = isCutType(type)
+      const frequency = EQ_FREQUENCIES[index] ?? 1000
+      // Un corte no usa ganancia: la forma la definen frecuencia y pendiente.
+      const gain = cut ? 0 : clamp(state.bands[index] ?? 0, -24, 24)
+      const slope = state.bandSlopes?.[index] ?? 24
+      const stages = cut ? Math.max(1, Math.min(BAND_STAGES, Math.round(slope / 12))) : 1
+      const qs = CUT_STAGE_Q[stages] ?? CUT_STAGE_Q[1]
+
+      chain.forEach((filter, stage) => {
+        const active = stage < stages
+        const nextType: BiquadFilterType = !active
+          ? 'peaking'
+          : cut
+            ? type === 'lowCut'
+              ? 'highpass'
+              : 'lowpass'
+            : type === 'lowShelf'
+              ? 'lowshelf'
+              : type === 'highShelf'
+                ? 'highshelf'
+                : 'peaking'
+
+        // El tipo de filtro no se puede automatizar: se asigna en seco y el
+        // resto de parámetros va suavizado.
+        if (filter.type !== nextType) filter.type = nextType
+        filter.frequency.setTargetAtTime(frequency, now, SMOOTH)
+        filter.gain.setTargetAtTime(active ? gain : 0, now, SMOOTH)
+        const q = !active ? SHELF_Q : cut ? (qs[stage] ?? 0.7071) : type === 'bell' ? BELL_Q : SHELF_Q
+        // En lowpass/highpass Web Audio interpreta Q en dB; en campanas y
+        // estantes es lineal. Sin convertir, el corte sale con joroba.
+        filter.Q.setTargetAtTime(cut && active ? 20 * Math.log10(q) : q, now, SMOOTH)
+      })
     })
 
     const masterGain = Math.pow(10, state.gain / 20)

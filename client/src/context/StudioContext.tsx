@@ -16,9 +16,12 @@ import {
   countActiveEffects,
   defaultStudioState,
   effectiveTempo,
+  isCutType,
   isStudioStateEqual,
   round,
   type EffectId,
+  type EqBandType,
+  type EqSlope,
   type StudioState,
   type ToneBand,
 } from '../lib/studio'
@@ -31,6 +34,9 @@ interface StudioContextValue {
   tempo: number
   activeList: EffectId[]
   setBand: (index: number, gain: number) => void
+  setBandType: (index: number, type: EqBandType) => void
+  setBandSlope: (index: number, slope: EqSlope) => void
+  resetEq: () => void
   setTone: (band: ToneBand, gain: number) => void
   setGain: (gain: number) => void
   setBalance: (balance: number) => void
@@ -69,6 +75,39 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     },
     [mutate],
   )
+
+  const setBandType = useCallback(
+    (index: number, type: EqBandType) => {
+      mutate((previous) => {
+        const bandTypes = [...previous.bandTypes]
+        bandTypes[index] = type
+        const bands = [...previous.bands]
+        // Un corte sustituye a la campana: la ganancia deja de tener sentido.
+        if (isCutType(type)) bands[index] = 0
+        return { ...previous, bandTypes, bands }
+      })
+    },
+    [mutate],
+  )
+
+  const setBandSlope = useCallback(
+    (index: number, slope: EqSlope) => {
+      mutate((previous) => {
+        const bandSlopes = [...previous.bandSlopes]
+        bandSlopes[index] = slope
+        return { ...previous, bandSlopes }
+      })
+    },
+    [mutate],
+  )
+
+  const resetEq = useCallback(() => {
+    mutate((previous) => ({
+      ...previous,
+      bands: previous.bands.map(() => 0),
+      bandTypes: previous.bandTypes.map(() => 'bell' as EqBandType),
+    }))
+  }, [mutate])
 
   const setTone = useCallback(
     (band: ToneBand, gain: number) => {
@@ -154,6 +193,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       tempo,
       activeList,
       setBand,
+      setBandType,
+      setBandSlope,
+      resetEq,
       setTone,
       setGain,
       setBalance,
@@ -172,6 +214,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       tempo,
       activeList,
       setBand,
+      setBandType,
+      setBandSlope,
+      resetEq,
       setTone,
       setGain,
       setBalance,

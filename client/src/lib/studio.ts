@@ -7,6 +7,34 @@ export const EQ_FREQUENCY_LABELS = ['20', '50', '100', '200', '500', '1K', '2K',
 export const EQ_MIN_DB = -18
 export const EQ_MAX_DB = 18
 
+/** Forma de filtro de cada banda del EQ gráfico. */
+export type EqBandType = 'bell' | 'lowShelf' | 'highShelf' | 'lowCut' | 'highCut'
+
+/** Pendiente de los cortes, en dB por octava. */
+export type EqSlope = 12 | 24 | 48
+
+export const EQ_SLOPES: EqSlope[] = [12, 24, 48]
+
+export const EQ_BAND_TYPE_META: { id: EqBandType; label: string; short: string }[] = [
+  { id: 'bell', label: 'Campana', short: 'Bell' },
+  { id: 'lowShelf', label: 'Estante de graves', short: 'Low shelf' },
+  { id: 'highShelf', label: 'Estante de agudos', short: 'High shelf' },
+  { id: 'lowCut', label: 'Corte de graves', short: 'Low cut' },
+  { id: 'highCut', label: 'Corte de agudos', short: 'High cut' },
+]
+
+export function isCutType(type: EqBandType): boolean {
+  return type === 'lowCut' || type === 'highCut'
+}
+
+export function sanitizeBandType(value: unknown): EqBandType {
+  return EQ_BAND_TYPE_META.some((meta) => meta.id === value) ? (value as EqBandType) : 'bell'
+}
+
+export function sanitizeBandSlope(value: unknown): EqSlope {
+  return EQ_SLOPES.includes(value as EqSlope) ? (value as EqSlope) : 24
+}
+
 export type EffectId =
   | 'bassBoost'
   | 'superBass'
@@ -33,6 +61,10 @@ export type ToneBand = 'bass' | 'mid' | 'treble'
 export interface StudioState {
   /** Ganancia en dB de cada banda del EQ gráfico */
   bands: number[]
+  /** Forma de cada banda: campana, estante o corte */
+  bandTypes: EqBandType[]
+  /** Pendiente de cada corte en dB/octava */
+  bandSlopes: EqSlope[]
   /** dB de los estantes de tono */
   bass: number
   mid: number
@@ -165,6 +197,8 @@ export const DEFAULT_EFFECTS: EffectsState = {
 export function defaultStudioState(): StudioState {
   return {
     bands: EQ_FREQUENCIES.map(() => 0),
+    bandTypes: EQ_FREQUENCIES.map(() => 'bell' as EqBandType),
+    bandSlopes: EQ_FREQUENCIES.map(() => 24 as EqSlope),
     bass: 0,
     mid: 0,
     treble: 0,
@@ -197,6 +231,8 @@ export function round(value: number, decimals = 1): number {
 export function cloneState(state: StudioState): StudioState {
   return {
     bands: state.bands.map((value) => round(clamp(value, EQ_MIN_DB, EQ_MAX_DB), 1)),
+    bandTypes: EQ_FREQUENCIES.map((_, index) => sanitizeBandType(state.bandTypes?.[index])),
+    bandSlopes: EQ_FREQUENCIES.map((_, index) => sanitizeBandSlope(state.bandSlopes?.[index])),
     bass: round(clamp(state.bass, -12, 12), 1),
     mid: round(clamp(state.mid, -12, 12), 1),
     treble: round(clamp(state.treble, -12, 12), 1),
@@ -235,8 +271,13 @@ export function sanitizeState(input: unknown): StudioState {
   const num = (value: unknown, fallback: number, min: number, max: number) =>
     typeof value === 'number' ? round(clamp(value, min, max), 1) : fallback
 
+  const bandTypes = EQ_FREQUENCIES.map((_, index) => sanitizeBandType(raw.bandTypes?.[index]))
+  const bandSlopes = EQ_FREQUENCIES.map((_, index) => sanitizeBandSlope(raw.bandSlopes?.[index]))
+
   return {
     bands,
+    bandTypes,
+    bandSlopes,
     bass: num(raw.bass, 0, -12, 12),
     mid: num(raw.mid, 0, -12, 12),
     treble: num(raw.treble, 0, -12, 12),

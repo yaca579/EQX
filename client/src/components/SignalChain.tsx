@@ -14,6 +14,7 @@ export function SignalChain({ className = '' }: { className?: string }) {
 
   const eqActive =
     state.bands.some((band) => Math.abs(band) > 0.4) ||
+    state.bandTypes.some((type) => type !== 'bell') ||
     Math.abs(state.bass) > 0.4 ||
     Math.abs(state.mid) > 0.4 ||
     Math.abs(state.treble) > 0.4
