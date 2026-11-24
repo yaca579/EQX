@@ -30,7 +30,7 @@ export function EqPanel({ className = '' }: { className?: string }) {
             Ecualizador gráfico
           </h2>
           <span className="rounded-full border border-white/10 bg-white/5 px-1.5 py-0.5 text-[9.5px] text-neutral-400">
-            10 bandas
+            6 bandas
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -133,7 +133,7 @@ export function EqPanel({ className = '' }: { className?: string }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-1 px-2 pb-3 pt-1 sm:px-3">
+      <div className="grid grid-cols-6 gap-1 px-2 pb-3 pt-1 sm:px-3">
         {state.bandFrequencies.map((bandFrequency, index) => (
           <div key={index} className="text-center">
             <p className="num text-[10.5px] text-neutral-400">{formatDb(state.bands[index] ?? 0)}</p>

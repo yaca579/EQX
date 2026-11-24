@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react'
 import { getEngine } from '../audio/engine'
 import {
   clamp,
-  EQ_BAND_LABELS,
   EQ_BAND_TYPE_META,
   EQ_FREQUENCIES,
+  EQ_GRID_FREQUENCIES,
+  EQ_GRID_LABELS,
   EQ_MAX_DB,
   EQ_MIN_DB,
   formatDb,
@@ -290,11 +291,10 @@ function draw(
   ctx.fillRect(x0, y0, plotWidth, plotHeight)
 
   // Rejilla vertical (frecuencias)
-  const gridFreqs = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
   ctx.font = '500 9.5px "JetBrains Mono Variable", ui-monospace, monospace'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'top'
-  gridFreqs.forEach((frequency, index) => {
+  EQ_GRID_FREQUENCIES.forEach((frequency, index) => {
     const x = freqToX(frequency)
     ctx.beginPath()
     ctx.strokeStyle = 'rgba(255,255,255,0.055)'
@@ -303,7 +303,7 @@ function draw(
     ctx.lineTo(Math.round(x) + 0.5, y0 + plotHeight)
     ctx.stroke()
     ctx.fillStyle = 'rgba(255,255,255,0.34)'
-    ctx.fillText(EQ_BAND_LABELS[index], x, y0 + plotHeight + 7)
+    ctx.fillText(EQ_GRID_LABELS[index], x, y0 + plotHeight + 7)
   })
 
   // Rejilla horizontal (dB)

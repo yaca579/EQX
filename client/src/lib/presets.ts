@@ -23,7 +23,7 @@ function effects(overrides: Partial<Record<EffectId, { enabled: boolean; amount?
 }
 
 function bands(values: number[]): number[] {
-  return values.slice(0, 10)
+  return values.slice(0, 6)
 }
 
 function makePreset(
@@ -40,7 +40,7 @@ export const FACTORY_PRESETS: Preset[] = [
 
   makePreset('factory-bass-cathedral', 'Bass Cathedral', 'Subgraves profundos con cola de sala.', {
     ...defaultStudioState(),
-    bands: bands([6, 7, 4, 1, 0, -1, -1, -1, -2, -3]),
+    bands: bands([6, 5, 1, -1, -1, -2]),
     bass: 5,
     treble: -1,
     effects: effects({ bassBoost: { enabled: true, amount: 0.8 }, superBass: { enabled: true, amount: 0.45 }, reverb: { enabled: true, amount: 0.35 } }),
@@ -49,7 +49,7 @@ export const FACTORY_PRESETS: Preset[] = [
 
   makePreset('factory-slow-reverb', 'Slow + Reverb', 'La versión ralentizada de cada canción.', {
     ...defaultStudioState(),
-    bands: bands([3, 3, 2, 1, 0, 0, 0, -1, -3, -5]),
+    bands: bands([3, 2, 0, 0, -1, -5]),
     bass: 2,
     treble: -2,
     effects: effects({ slowReverb: { enabled: true }, reverb: { enabled: true, amount: 0.28 }, vinyl: { enabled: true, amount: 0.22 } }),
@@ -58,7 +58,7 @@ export const FACTORY_PRESETS: Preset[] = [
 
   makePreset('factory-nightcore', 'Nightcore', 'Rápido, brillante y con energía.', {
     ...defaultStudioState(),
-    bands: bands([-2, -1, 0, 0, 0, 1, 2, 3, 2, 1]),
+    bands: bands([-2, 0, 0, 2, 3, 1]),
     mid: 1,
     treble: 2,
     effects: effects({ speedUp: { enabled: true }, vocalBoost: { enabled: true, amount: 0.4 } }),
@@ -67,7 +67,7 @@ export const FACTORY_PRESETS: Preset[] = [
 
   makePreset('factory-lofi-tape', 'Lo-Fi Tape', 'Cinta gastada, filtro cálido y vinilo.', {
     ...defaultStudioState(),
-    bands: bands([3, 2, 1, 0, -1, -1, -2, -4, -7, -9]),
+    bands: bands([3, 1, -1, -2, -4, -9]),
     bass: 2,
     treble: -4,
     effects: effects({ lofi: { enabled: true, amount: 0.62 }, vinyl: { enabled: true, amount: 0.55 } }),
@@ -76,7 +76,7 @@ export const FACTORY_PRESETS: Preset[] = [
 
   makePreset('factory-vocal-air', 'Vocal Air', 'Voz al frente con aire y espacio.', {
     ...defaultStudioState(),
-    bands: bands([-1, -1, -1, -2, 0, 1, 3, 2, 1, 0]),
+    bands: bands([-1, -1, 0, 3, 1, 0]),
     mid: 2,
     effects: effects({ vocalBoost: { enabled: true, amount: 0.7 }, reverb: { enabled: true, amount: 0.3 } }),
     speed: 1,
@@ -84,14 +84,14 @@ export const FACTORY_PRESETS: Preset[] = [
 
   makePreset('factory-8d-orbit', '8D Orbit', 'Paneo orbital envolvente con reverb.', {
     ...defaultStudioState(),
-    bands: bands([2, 2, 1, 0, 0, 0, 1, 1, 2, 2]),
+    bands: bands([2, 1, 0, 1, 1, 2]),
     effects: effects({ eightD: { enabled: true, amount: 0.82 }, reverb: { enabled: true, amount: 0.32 } }),
     speed: 1,
   }),
 
   makePreset('factory-club-pressure', 'Club Pressure', 'Bajos al límite con saturación.', {
     ...defaultStudioState(),
-    bands: bands([5, 5, 3, 0, -1, -1, 0, 1, 0, -1]),
+    bands: bands([5, 3, -1, 0, 0, -1]),
     bass: 4,
     gain: -2,
     effects: effects({ bassBoost: { enabled: true, amount: 0.9 }, superBass: { enabled: true, amount: 0.7 }, distortion: { enabled: true, amount: 0.2 } }),

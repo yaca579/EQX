@@ -1,6 +1,10 @@
-export const EQ_FREQUENCIES = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000] as const
+export const EQ_FREQUENCIES = [40, 120, 400, 1200, 4000, 12000] as const
 
-export const EQ_BAND_LABELS = ['31', '62', '125', '250', '500', '1K', '2K', '4K', '8K', '16K']
+export const EQ_BAND_LABELS = ['40', '120', '400', '1.2K', '4K', '12K']
+
+/** Rejilla de referencia del gráfico, independiente de las bandas. */
+export const EQ_GRID_FREQUENCIES = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
+export const EQ_GRID_LABELS = ['31', '62', '125', '250', '500', '1K', '2K', '4K', '8K', '16K']
 
 export const EQ_FREQUENCY_LABELS = ['20', '50', '100', '200', '500', '1K', '2K', '5K', '10K', '20K']
 
