@@ -449,24 +449,14 @@ export class AudioEngine {
 
       chain.forEach((filter, stage) => {
         const active = stage < stages
-        const nextType: BiquadFilterType = !active
-          ? 'peaking'
-          : cut
-            ? type === 'lowCut'
-              ? 'highpass'
-              : 'lowpass'
-            : type === 'lowShelf'
-              ? 'lowshelf'
-              : type === 'highShelf'
-                ? 'highshelf'
-                : 'peaking'
+        const nextType: BiquadFilterType = !active ? 'peaking' : cut ? (type === 'lowCut' ? 'highpass' : 'lowpass') : 'peaking'
 
         // El tipo de filtro no se puede automatizar: se asigna en seco y el
         // resto de parámetros va suavizado.
         if (filter.type !== nextType) filter.type = nextType
         filter.frequency.setTargetAtTime(frequency, now, SMOOTH)
         filter.gain.setTargetAtTime(active ? gain : 0, now, SMOOTH)
-        const q = !active ? SHELF_Q : cut ? (qs[stage] ?? 0.7071) : type === 'bell' ? BELL_Q : SHELF_Q
+        const q = !active ? SHELF_Q : cut ? (qs[stage] ?? 0.7071) : BELL_Q
         // En lowpass/highpass Web Audio interpreta Q en dB; en campanas y
         // estantes es lineal. Sin convertir, el corte sale con joroba.
         filter.Q.setTargetAtTime(cut && active ? 20 * Math.log10(q) : q, now, SMOOTH)

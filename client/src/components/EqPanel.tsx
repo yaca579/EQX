@@ -115,7 +115,7 @@ export function EqPanel({ className = '' }: { className?: string }) {
           <p className="w-full text-[10px] leading-relaxed text-neutral-600 sm:w-auto">
             {cut
               ? 'Low cut recorta los graves por la izquierda; high cut los agudos por la derecha.'
-              : 'Campana para tallar una zona; estantes para subir o bajar todo un extremo.'}
+              : 'Campana para subir o bajar una zona concreta del espectro.'}
           </p>
         </div>
       </div>

@@ -8,7 +8,7 @@ export const EQ_MIN_DB = -18
 export const EQ_MAX_DB = 18
 
 /** Forma de filtro de cada banda del EQ gráfico. */
-export type EqBandType = 'bell' | 'lowShelf' | 'highShelf' | 'lowCut' | 'highCut'
+export type EqBandType = 'bell' | 'lowCut' | 'highCut'
 
 /** Pendiente de los cortes, en dB por octava. */
 export type EqSlope = 12 | 24 | 48
@@ -17,8 +17,6 @@ export const EQ_SLOPES: EqSlope[] = [12, 24, 48]
 
 export const EQ_BAND_TYPE_META: { id: EqBandType; label: string; short: string }[] = [
   { id: 'bell', label: 'Campana', short: 'Bell' },
-  { id: 'lowShelf', label: 'Estante de graves', short: 'Low shelf' },
-  { id: 'highShelf', label: 'Estante de agudos', short: 'High shelf' },
   { id: 'lowCut', label: 'Corte de graves', short: 'Low cut' },
   { id: 'highCut', label: 'Corte de agudos', short: 'High cut' },
 ]
